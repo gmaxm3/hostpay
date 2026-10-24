@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-cde-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: 'git@bitbucket.org:Kapowai/hostpay-gitops.git'
+        revision: HEAD
+        directories:
+          - path: k8s-ops/apps/cde/*
+  template:
+    metadata:
+      name: 'dev-cde-{{path.basename}}'
+    spec:
+      project: dev
+      source:
+        repoURL: 'git@bitbucket.org:Kapowai/hostpay-gitops.git'
+        targetRevision: HEAD
+        path: '{{path}}/overlays/dev'
+      destination:
+        name: dev-cde
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

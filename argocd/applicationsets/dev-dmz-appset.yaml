@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-dmz-infra
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: 'git@bitbucket.org:Kapowai/hostpay-gitops.git'
+        revision: HEAD
+        directories:
+          - path: infrastructure/traefik
+  template:
+    metadata:
+      name: 'dev-dmz-{{path.basename}}'
+    spec:
+      project: dev
+      source:
+        repoURL: 'git@bitbucket.org:Kapowai/hostpay-gitops.git'
+        targetRevision: HEAD
+        path: '{{path}}/overlays/dev-dmz'
+      destination:
+        name: dev-dmz
+        namespace: kube-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

@@ -1,0 +1,6 @@
+---
+dmz_k3s_token: "dev-dmz-secure-cluster-token"
+cde_k3s_token: "dev-cde-secure-cluster-token"
+
+local_dmz_kubeconfig_dest: "~/.kube/hostpay-dev-dmz"
+local_cde_kubeconfig_dest: "~/.kube/hostpay-dev-cde"

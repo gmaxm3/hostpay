@@ -1,0 +1,17 @@
+---
+# Версия ArgoCD
+argocd_version: "v2.10.4"
+
+# Кроссплатформенные динамические пути к ключам
+local_sops_key_path: "{{ lookup('env', 'HOME') }}/.config/sops/age/hostpay/keys.txt"
+local_ssh_key_path: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa"
+
+# URL репозитория GitOps
+git_repo_url: "git@bitbucket.org:Kapowai/hostpay-gitops.git"
+
+# Новые домены Hostpay
+dev_public_domain: "dev.hostpay.com.ua"
+hostpay_wildcard_domain: "*.hostpay.com.ua"
+
+# Email для сертификатов
+acme_email: "vladimir.fesik@kapowai.online"

@@ -1,0 +1,23 @@
+---
+- name: Deploy K3s on Dev CDE Node
+  hosts: dev_cde
+  become: true
+  tasks:
+    - name: Install K3s server on Dev CDE
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_TOKEN="{{ cde_k3s_token }}" sh -s - --write-kubeconfig-mode 644
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Read Kubeconfig from Dev CDE Node
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: cde_kubeconfig_raw
+
+    - name: Save Dev CDE Kubeconfig locally
+      delegate_to: localhost
+      become: false
+      ansible.builtin.copy:
+        content: "{{ cde_kubeconfig_raw['content'] | b64decode | regex_replace('127.0.0.1', ansible_host) }}"
+        dest: "{{ local_cde_kubeconfig_dest }}"
+        mode: '0600'

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-dev-cde
+  namespace: argocd
+  labels:
+    env: dev
+    zone: cde
+    app-type: root
+spec:
+  project: default
+  source:
+    repoURL: 'git@bitbucket.org:your-org/hostpay-gitops.git'
+    targetRevision: HEAD
+    path: k8s-ops/apps/cde/rabbitmq/overlays/dev
+  destination:
+    name: dev-cde
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

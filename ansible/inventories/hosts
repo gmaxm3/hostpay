@@ -1,0 +1,12 @@
+[management]
+mgmt-node
+
+[dev_dmz]
+dev-dmz-node
+
+[dev_cde]
+dev-cde-node
+
+[dev:children]
+dev_dmz
+dev_cde

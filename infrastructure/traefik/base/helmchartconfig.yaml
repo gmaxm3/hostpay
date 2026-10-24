@@ -1,0 +1,27 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    deployment:
+      podLabels:
+        app.kubernetes.io/part-of: hostpay
+        zone: dmz
+        env: dev
+    service:
+      type: NodePort
+      spec:
+        externalTrafficPolicy: Local
+    ports:
+      web:
+        port: 8000
+        hostPort: 80
+      websecure:
+        port: 8443
+        hostPort: 443
+    additionalArguments:
+      - "--providers.kubernetesingress.allowExternalNameServices=true"
+      - "--serversTransport.insecureSkipVerify=true"
+      - "--accesslog=true"

@@ -1,0 +1,54 @@
+---
+- name: 4. Register DEV DMZ & CDE Clusters with Labels in ArgoCD
+  hosts: mgmt-node
+  become: true
+  tasks:
+    - name: Register Dev DMZ Cluster Secret in ArgoCD
+      ansible.builtin.shell: |
+        k3s kubectl apply -f - <<EOF
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: dev-dmz-cluster-secret
+          namespace: argocd
+          labels:
+            argocd.argoproj.io/secret-type: cluster
+            environment: dev
+            zone: dmz
+            project: hostpay
+        type: Opaque
+        stringData:
+          name: dev-dmz
+          server: https://192.168.0.13:6443
+          config: |
+            {
+              "tlsClientConfig": {
+                "insecure": true
+              }
+            }
+        EOF
+
+    - name: Register DEV CDE Cluster Secret in ArgoCD
+      ansible.builtin.shell: |
+        k3s kubectl apply -f - <<EOF
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: dev-cde-cluster-secret
+          namespace: argocd
+          labels:
+            argocd.argoproj.io/secret-type: cluster
+            environment: dev
+            zone: cde
+            project: hostpay
+        type: Opaque
+        stringData:
+          name: dev-cde
+          server: https://192.168.0.14:6443
+          config: |
+            {
+              "tlsClientConfig": {
+                "insecure": true
+              }
+            }
+        EOF

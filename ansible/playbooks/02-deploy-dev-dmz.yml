@@ -1,0 +1,23 @@
+---
+- name: Deploy K3s on Dev DMZ Node
+  hosts: dev_dmz
+  become: true
+  tasks:
+    - name: Install K3s server on Dev DMZ
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_TOKEN="{{ dmz_k3s_token }}" sh -s - --write-kubeconfig-mode 644
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Read Kubeconfig from Dev DMZ Node
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: dmz_kubeconfig_raw
+
+    - name: Save Dev DMZ Kubeconfig locally
+      delegate_to: localhost
+      become: false
+      ansible.builtin.copy:
+        content: "{{ dmz_kubeconfig_raw['content'] | b64decode | regex_replace('127.0.0.1', ansible_host) }}"
+        dest: "{{ local_dmz_kubeconfig_dest }}"
+        mode: '0600'

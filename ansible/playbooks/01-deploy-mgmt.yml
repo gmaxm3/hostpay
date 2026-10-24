@@ -1,0 +1,78 @@
+---
+- name: 1. Deploy K3s & ArgoCD Hub on Management Node
+  hosts: management
+  become: true
+  tasks:
+    # --------------------------------------------------------------------------
+    # 1. Установка K3s
+    # --------------------------------------------------------------------------
+    - name: Install K3s server
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" sh -s - --write-kubeconfig-mode 644
+      args:
+        creates: /usr/local/bin/k3s
+
+    # --------------------------------------------------------------------------
+    # 2. Создание Namespace и установка ArgoCD
+    # --------------------------------------------------------------------------
+    - name: Create argocd namespace
+      ansible.builtin.shell: |
+        k3s kubectl create namespace argocd --dry-run=client -o yaml | k3s kubectl apply -f -
+
+    - name: Apply ArgoCD Manifests
+      ansible.builtin.command:
+        cmd: k3s kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml
+
+    # --------------------------------------------------------------------------
+    # 3. Добавление SOPS Age Key в ArgoCD
+    # --------------------------------------------------------------------------
+    - name: Copy SOPS Age Key to Management Node
+      ansible.builtin.copy:
+        src: "{{ local_sops_key_path }}"
+        dest: /tmp/sops-keys.txt
+        mode: '0600'
+
+    - name: Create sops-age-key Secret in ArgoCD
+      ansible.builtin.shell: |
+        k3s kubectl create secret generic sops-age-key \
+          -n argocd \
+          --from-file=key.txt=/tmp/sops-keys.txt \
+          --dry-run=client -o yaml | k3s kubectl apply -f -
+        rm -f /tmp/sops-keys.txt
+
+    # --------------------------------------------------------------------------
+    # 4. Подключение SSH Репозитория hostpay-gitops к ArgoCD
+    # --------------------------------------------------------------------------
+    - name: Copy Bitbucket SSH Key to Management Node
+      ansible.builtin.copy:
+        src: "{{ local_ssh_key_path }}"
+        dest: /tmp/bitbucket_id_rsa
+        mode: '0600'
+
+    - name: Register Bitbucket Repository in ArgoCD
+      ansible.builtin.shell: |
+        k3s kubectl create secret generic repo-hostpay-gitops \
+          -n argocd \
+          --from-literal=type=git \
+          --from-literal=url="{{ git_repo_url }}" \
+          --from-file=sshPrivateKey=/tmp/bitbucket_id_rsa \
+          --dry-run=client -o yaml | k3s kubectl apply -f -
+        
+        k3s kubectl label secret repo-hostpay-gitops -n argocd argocd.argoproj.io/secret-type=repository --overwrite
+        rm -f /tmp/bitbucket_id_rsa
+
+    # --------------------------------------------------------------------------
+    # 5. Сохранение Kubeconfig на ПК
+    # --------------------------------------------------------------------------
+    - name: Read Kubeconfig from Management Node
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: mgmt_kubeconfig_raw
+
+    - name: Save Kubeconfig locally
+      delegate_to: localhost
+      become: false
+      ansible.builtin.copy:
+        content: "{{ mgmt_kubeconfig_raw['content'] | b64decode | regex_replace('127.0.0.1', ansible_host) }}"
+        dest: "{{ local_kubeconfig_dest }}"
+        mode: '0600'
